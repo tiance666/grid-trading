@@ -5,8 +5,8 @@
     <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <script>
         const config = {
-            apiUrl: window.location.hostname === 'localhost' ? 'http://localhost:8000' : 'http://47.113.144.26:8000',  // 使用HTTP
-            wsUrl: window.location.hostname === 'localhost' ? 'ws://localhost:8000/ws' : 'ws://47.113.144.26:8000/ws',  // 使用WS
+            apiUrl: window.location.hostname === 'localhost' ? 'http://localhost:8000' : 'http://47.113.144.26:8000',  // 临时使用IP
+            wsUrl: window.location.hostname === 'localhost' ? 'ws://localhost:8000/ws' : 'ws://47.113.144.26:8000/ws',  // 临时使用IP
             klineUrl: '/api/klines',              // K线数据接口
             startTradingUrl: '/api/start',        // 开始交易接口
             stopTradingUrl: '/api/stop',          // 停止交易接口
@@ -340,33 +340,22 @@
             const symbol = document.getElementById('symbol').value;
             const interval = document.getElementById('interval').value;
             try {
-                const response = await fetch(`${config.apiUrl}/api/klines?symbol=${symbol}&interval=${interval}`, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json'
-                    }
-                });
-                
+                const response = await fetch(`${config.apiUrl}${config.klineUrl}?symbol=${symbol}&interval=${interval}`);
                 if (!response.ok) {
                     const error = await response.json();
                     throw new Error(error.detail || '获取K线数据失败');
                 }
-                
                 const data = await response.json();
                 if (!Array.isArray(data)) {
                     throw new Error('无效的K线数据格式');
                 }
-                
-                const formattedData = data.map(kline => ({
+                candlestickSeries.setData(data.map(kline => ({
                     time: kline.time,
-                    open: parseFloat(kline.open),
-                    high: parseFloat(kline.high),
-                    low: parseFloat(kline.low),
-                    close: parseFloat(kline.close)
-                }));
-                
-                candlestickSeries.setData(formattedData);
-                console.log('K线数据更新成功:', formattedData.length, '条数据');
+                    open: kline.open,
+                    high: kline.high,
+                    low: kline.low,
+                    close: kline.close
+                })));
             } catch (error) {
                 console.error('更新K线图失败:', error);
                 updateStatus('获取K线数据失败: ' + error.message, 'error');
@@ -385,52 +374,39 @@
         });
 
         function connectWebSocket() {
-            try {
-                ws = new WebSocket(config.wsUrl);
-                
-                ws.onopen = function() {
-                    console.log('WebSocket连接已建立');
-                    updateStatus('WebSocket连接成功', 'success');
-                };
-                
-                ws.onmessage = function(event) {
-                    try {
-                        const data = JSON.parse(event.data);
-                        console.log('收到WebSocket消息:', data);
-                        
-                        if (data.type === 'price') {
-                            updatePrice(data.symbol, data.price);
-                        }
-                    } catch (error) {
-                        console.error('处理WebSocket消息失败:', error);
-                    }
-                };
-                
-                ws.onclose = function() {
-                    console.log('WebSocket连接已关闭');
-                    updateStatus('WebSocket连接已断开，5秒后重试...', 'error');
-                    setTimeout(connectWebSocket, 5000);
-                };
-                
-                ws.onerror = function(error) {
-                    console.error('WebSocket错误:', error);
-                    updateStatus('WebSocket连接错误', 'error');
-                };
-            } catch (error) {
-                console.error('创建WebSocket连接失败:', error);
-                updateStatus('创建WebSocket连接失败: ' + error.message, 'error');
+            ws = new WebSocket(config.wsUrl);
+            
+            ws.onopen = function() {
+                console.log('WebSocket连接已建立');
+                updateStatus('WebSocket连接成功', 'success');
+            };
+            
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                if (data.type === 'price_update') {
+                    Object.entries(data.data).forEach(([symbol, price]) => {
+                        updatePrice(symbol, price);
+                    });
+                }
+            };
+            
+            ws.onclose = function() {
+                console.log('WebSocket连接已关闭');
+                updateStatus('WebSocket连接已断开，5秒后重试...', 'error');
                 setTimeout(connectWebSocket, 5000);
-            }
+            };
+            
+            ws.onerror = function(error) {
+                console.error('WebSocket错误:', error);
+                updateStatus('WebSocket连接错误', 'error');
+            };
         }
         
         function updatePrice(symbol, price) {
-            const elementId = symbol.toLowerCase() + '-price';
+            const elementId = symbol.toLowerCase().replace('usdt', '-price');
             const element = document.getElementById(elementId);
             if (element) {
-                element.textContent = parseFloat(price).toFixed(2) + ' USDT';
-                console.log('更新价格:', symbol, price);
-            } else {
-                console.error('找不到价格显示元素:', elementId);
+                element.textContent = parseFloat(price).toFixed(2);
             }
         }
 
@@ -450,11 +426,10 @@
             }
             
             try {
-                const response = await fetch(`${config.apiUrl}/api/save_config`, {
+                const response = await fetch(config.apiUrl + '/api/save_config', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Accept': 'application/json'
                     },
                     body: JSON.stringify({
                         api_key: apiKey,
@@ -462,12 +437,11 @@
                     })
                 });
                 
-                const data = await response.json();
-                
                 if (!response.ok) {
-                    throw new Error(data.detail || '保存配置失败');
+                    throw new Error('保存配置失败');
                 }
                 
+                const data = await response.json();
                 if (data.status === 'success') {
                     updateStatus('配置保存成功', 'success');
                 } else {
