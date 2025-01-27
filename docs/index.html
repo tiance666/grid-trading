@@ -1,143 +1,673 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grid Trading System</title>
+    <title>网格交易系统</title>
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <script>
+        const config = {
+            apiUrl: window.location.hostname === 'localhost' ? 'http://localhost:8000' : 'http://47.113.144.26:8000',  // 使用HTTP
+            wsUrl: window.location.hostname === 'localhost' ? 'ws://localhost:8000/ws' : 'ws://47.113.144.26:8000/ws',  // 使用WS
+            klineUrl: '/api/klines',              // K线数据接口
+            startTradingUrl: '/api/start',        // 开始交易接口
+            stopTradingUrl: '/api/stop',          // 停止交易接口
+            previewUrl: '/api/preview'            // 预览网格接口
+        };
+    </script>
     <style>
         body {
             font-family: Arial, sans-serif;
-            line-height: 1.6;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            color: #333;
+            margin: 20px;
+            background-color: #f5f5f5;
         }
         .container {
-            background-color: #f5f5f5;
-            border-radius: 8px;
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
             padding: 20px;
-            margin-top: 20px;
+            border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        h1, h2 {
-            color: #2c3e50;
+        .main-content {
+            display: flex;
+            gap: 20px;
         }
-        h1 {
-            text-align: center;
-            border-bottom: 2px solid #3498db;
-            padding-bottom: 10px;
+        .left-panel {
+            flex: 1;
+            min-width: 300px;
         }
-        .links {
-            margin-top: 20px;
-            text-align: center;
+        .right-panel {
+            flex: 2;
         }
-        .links a {
-            display: inline-block;
-            margin: 10px;
-            padding: 10px 20px;
-            background-color: #3498db;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            transition: background-color 0.3s;
-        }
-        .links a:hover {
-            background-color: #2980b9;
-        }
-        .feature-list {
-            list-style-type: none;
-            padding: 0;
-        }
-        .feature-list li {
-            margin: 10px 0;
-            padding-left: 25px;
-            position: relative;
-        }
-        .feature-list li:before {
-            content: "✓";
-            position: absolute;
-            left: 0;
-            color: #27ae60;
-        }
-        code {
-            background-color: #f8f9fa;
-            padding: 2px 5px;
-            border-radius: 3px;
-            font-family: monospace;
-        }
-        .warning {
-            background-color: #fff3cd;
-            border-left: 4px solid #ffc107;
+        .section {
+            margin-bottom: 20px;
             padding: 15px;
-            margin: 10px 0;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button.danger {
+            background-color: #dc3545;
+        }
+        button.danger:hover {
+            background-color: #c82333;
+        }
+        .price-display {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .price-box {
+            flex: 1;
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .price-box .symbol {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .grid-preview {
+            margin-top: 20px;
+        }
+        .grid-line {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .grid-line.buy {
+            background-color: rgba(40, 167, 69, 0.1);
+            border-left: 4px solid #28a745;
+        }
+        .grid-line.sell {
+            background-color: rgba(220, 53, 69, 0.1);
+            border-left: 4px solid #dc3545;
+        }
+        .grid-line.current {
+            background-color: rgba(0, 123, 255, 0.1);
+            border-left: 4px solid #007bff;
+        }
+        .grid-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .grid-price, .grid-amount, .grid-investment {
+            flex: 1;
+            text-align: center;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        #status.success {
+            background-color: rgba(40, 167, 69, 0.1);
+            color: #28a745;
+        }
+        #status.error {
+            background-color: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+        }
+        .chart-container {
+            height: 400px;
+            margin-bottom: 20px;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .trade-type-switch {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        .trade-type-switch label {
+            margin-right: 10px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+        .trade-type-switch input[type="radio"] {
+            margin-right: 5px;
+        }
+        .leverage-input {
+            display: none;
+        }
+        .leverage-input.show {
+            display: block;
+        }
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .interval-select {
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
         }
     </style>
 </head>
 <body>
-    <h1>网格交易系统</h1>
-    
     <div class="container">
-        <h2>项目简介</h2>
-        <p>这是一个基于 Binance API 的加密货币网格交易系统。系统采用 FastAPI 构建，提供直观的 Web 界面，支持灵活的网格交易策略配置。</p>
+        <h1>网格交易系统</h1>
         
-        <h3>主要特点</h3>
-        <ul class="feature-list">
-            <li>自动网格交易：系统自动在设定价格区间内进行买卖操作</li>
-            <li>多币种支持：目前支持 BTC/USDT、ETH/USDT 交易对</li>
-            <li>实时价格监控：通过 WebSocket 实时更新市场价格</li>
-            <li>灵活配置：支持自定义网格数量、网格高度等参数</li>
-            <li>安全可靠：通过 API Key 认证，保障账户安全</li>
-        </ul>
-    </div>
+        <div class="main-content">
+            <div class="left-panel">
+                <!-- API配置部分 -->
+                <div class="section">
+                    <h2>API配置</h2>
+                    <div class="form-group">
+                        <label for="apiKey">API Key:</label>
+                        <input type="text" id="apiKey" placeholder="输入 Binance API Key">
+                    </div>
+                    <div class="form-group">
+                        <label for="secretKey">Secret Key:</label>
+                        <input type="password" id="secretKey" placeholder="输入 Binance Secret Key">
+                    </div>
+                    <button onclick="saveConfig()">保存配置</button>
+                </div>
 
-    <div class="container">
-        <h2>使用指南</h2>
-        <h3>系统要求</h3>
-        <ul>
-            <li>Python 3.8 或更高版本</li>
-            <li>Binance API Key 和 Secret Key</li>
-        </ul>
+                <!-- 网格配置部分 -->
+                <div class="section">
+                    <h2>网格配置</h2>
+                    <div class="form-group trade-type-switch">
+                        <label>
+                            <input type="radio" name="tradeType" value="spot" checked onchange="handleTradeTypeChange()">
+                            <span>现货</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="tradeType" value="futures" onchange="handleTradeTypeChange()">
+                            <span>合约</span>
+                        </label>
+                    </div>
+                    <div id="leverageInput" class="form-group leverage-input">
+                        <label for="leverage">杠杆倍数 (1-125):</label>
+                        <input type="number" id="leverage" min="1" max="125" value="10">
+                    </div>
+                    <div class="form-group">
+                        <label for="symbol">交易对:</label>
+                        <select id="symbol" onchange="updateChart(); handleSymbolChange()">
+                            <option value="BTCUSDT">BTC/USDT</option>
+                            <option value="ETHUSDT">ETH/USDT</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="gridCount">网格数量 (4-50):</label>
+                        <input type="number" id="gridCount" min="4" max="50" value="10">
+                    </div>
+                    <div class="form-group">
+                        <label for="gridHeight">网格高度 (0.1%-10%):</label>
+                        <input type="number" id="gridHeight" min="0.1" max="10" step="0.1" value="1">
+                    </div>
+                    <div class="form-group">
+                        <label>投资方式:</label>
+                        <select id="investmentType" onchange="handleInvestmentTypeChange()">
+                            <option value="total">总投资金额</option>
+                            <option value="per_grid">每格数量</option>
+                        </select>
+                    </div>
+                    <div id="totalInvestmentInput" class="form-group">
+                        <label for="investment">总投资金额 (USDT):</label>
+                        <input type="number" id="investment" min="1" step="0.1">
+                    </div>
+                    <div id="perGridAmountInput" class="form-group" style="display: none;">
+                        <label for="perGridAmount">每格数量:</label>
+                        <input type="number" id="perGridAmount" min="0.001" step="0.001">
+                        <span id="perGridUnit">BTC</span>
+                    </div>
+                    <button onclick="previewGrid()">预览网格</button>
+                </div>
 
-        <h3>快速开始</h3>
-        <ol>
-            <li>克隆项目代码：<br>
-                <code>git clone https://github.com/tiance666/grid-trading.git</code>
-            </li>
-            <li>安装依赖：<br>
-                <code>pip install -r requirements.txt</code>
-            </li>
-            <li>启动服务器：<br>
-                <code>cd src/server && uvicorn app:app --host 0.0.0.0 --port 8000</code>
-            </li>
-        </ol>
+                <!-- 交易控制部分 -->
+                <div class="section">
+                    <button onclick="startTrading()" id="startButton">开始交易</button>
+                    <button onclick="stopTrading()" id="stopButton" class="danger">停止交易</button>
+                </div>
+            </div>
 
-        <div class="warning">
-            <strong>注意：</strong> 在开始交易前，请确保：
-            <ul>
-                <li>已经理解网格交易的原理和风险</li>
-                <li>使用正确的 API 权限（仅需要交易权限）</li>
-                <li>从小额开始测试系统功能</li>
-            </ul>
+            <div class="right-panel">
+                <!-- K线图显示区域 -->
+                <div class="section">
+                    <div class="chart-header">
+                        <h2>K线图</h2>
+                        <select id="interval" class="interval-select" onchange="updateChart()">
+                            <option value="1m">1分钟</option>
+                            <option value="3m">3分钟</option>
+                            <option value="5m">5分钟</option>
+                            <option value="15m">15分钟</option>
+                            <option value="30m">30分钟</option>
+                            <option value="1h">1小时</option>
+                            <option value="4h">4小时</option>
+                            <option value="1d">1天</option>
+                        </select>
+                    </div>
+                    <div id="chart" class="chart-container"></div>
+                </div>
+
+                <!-- 价格显示区域 -->
+                <div class="price-display">
+                    <div class="price-box">
+                        <div class="symbol">BTC/USDT</div>
+                        <div id="btc-price">等待连接...</div>
+                    </div>
+                    <div class="price-box">
+                        <div class="symbol">ETH/USDT</div>
+                        <div id="eth-price">等待连接...</div>
+                    </div>
+                </div>
+
+                <!-- 网格预览区域 -->
+                <div class="section grid-preview" id="gridPreview">
+                    <h2>网格预览</h2>
+                    <div id="gridLines"></div>
+                </div>
+
+                <!-- 状态显示区域 -->
+                <div id="status"></div>
+            </div>
         </div>
     </div>
 
-    <div class="container">
-        <h2>配置说明</h2>
-        <h3>网格参数</h3>
-        <ul>
-            <li><strong>网格数量：</strong> 建议设置4-50个网格</li>
-            <li><strong>网格高度：</strong> 建议范围0.1%-10%，根据市场波动调整</li>
-            <li><strong>投资金额：</strong> 根据个人风险承受能力设置</li>
-        </ul>
-    </div>
+    <script>
+        let ws;
+        let chart;
+        let candlestickSeries;
+        
+        // 初始化图表
+        function initChart() {
+            const chartElement = document.getElementById('chart');
+            chart = LightweightCharts.createChart(chartElement, {
+                width: chartElement.clientWidth,
+                height: chartElement.clientHeight,
+                layout: {
+                    backgroundColor: '#ffffff',
+                    textColor: '#333',
+                },
+                grid: {
+                    vertLines: {
+                        color: '#f0f0f0',
+                    },
+                    horzLines: {
+                        color: '#f0f0f0',
+                    },
+                },
+                crosshair: {
+                    mode: LightweightCharts.CrosshairMode.Normal,
+                },
+                timeScale: {
+                    timeVisible: true,
+                    secondsVisible: false,
+                }
+            });
 
-    <div class="container">
-        <h2>快速链接</h2>
-        <div class="links">
-            <a href="https://github.com/tiance666/grid-trading">查看源代码</a>
-            <a href="https://github.com/tiance666/grid-trading/issues">问题反馈</a>
-        </div>
-    </div>
+            candlestickSeries = chart.addCandlestickSeries();
+            updateChart();
+        }
+
+        // 更新K线图数据
+        async function updateChart() {
+            const symbol = document.getElementById('symbol').value;
+            const interval = document.getElementById('interval').value;
+            try {
+                const response = await fetch(`${config.apiUrl}${config.klineUrl}?symbol=${symbol}&interval=${interval}`);
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || '获取K线数据失败');
+                }
+                const data = await response.json();
+                if (!Array.isArray(data)) {
+                    throw new Error('无效的K线数据格式');
+                }
+                candlestickSeries.setData(data.map(kline => ({
+                    time: kline.time,
+                    open: kline.open,
+                    high: kline.high,
+                    low: kline.low,
+                    close: kline.close
+                })));
+            } catch (error) {
+                console.error('更新K线图失败:', error);
+                updateStatus('获取K线数据失败: ' + error.message, 'error');
+            }
+        }
+
+        // 监听窗口大小变化
+        window.addEventListener('resize', () => {
+            if (chart) {
+                const chartElement = document.getElementById('chart');
+                chart.applyOptions({
+                    width: chartElement.clientWidth,
+                    height: chartElement.clientHeight
+                });
+            }
+        });
+
+        function connectWebSocket() {
+            ws = new WebSocket(config.wsUrl);
+            
+            ws.onopen = function() {
+                console.log('WebSocket连接已建立');
+                updateStatus('WebSocket连接成功', 'success');
+            };
+            
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                if (data.type === 'price_update') {
+                    Object.entries(data.data).forEach(([symbol, price]) => {
+                        updatePrice(symbol, price);
+                    });
+                }
+            };
+            
+            ws.onclose = function() {
+                console.log('WebSocket连接已关闭');
+                updateStatus('WebSocket连接已断开，5秒后重试...', 'error');
+                setTimeout(connectWebSocket, 5000);
+            };
+            
+            ws.onerror = function(error) {
+                console.error('WebSocket错误:', error);
+                updateStatus('WebSocket连接错误', 'error');
+            };
+        }
+        
+        function updatePrice(symbol, price) {
+            const elementId = symbol.toLowerCase().replace('usdt', '-price');
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.textContent = parseFloat(price).toFixed(2);
+            }
+        }
+
+        function updateStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = type;
+        }
+        
+        async function saveConfig() {
+            const apiKey = document.getElementById('apiKey').value;
+            const secretKey = document.getElementById('secretKey').value;
+            
+            if (!apiKey || !secretKey) {
+                updateStatus('请输入API Key和Secret Key', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(config.apiUrl + '/api/save_config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        api_key: apiKey,
+                        api_secret: secretKey
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('保存配置失败');
+                }
+                
+                const data = await response.json();
+                if (data.status === 'success') {
+                    updateStatus('配置保存成功', 'success');
+                } else {
+                    throw new Error(data.message || '配置保存失败');
+                }
+            } catch (error) {
+                console.error('保存配置错误:', error);
+                updateStatus('错误: ' + error.message, 'error');
+            }
+        }
+
+        // 处理交易类型变化
+        function handleTradeTypeChange() {
+            const tradeType = document.querySelector('input[name="tradeType"]:checked').value;
+            const leverageInput = document.getElementById('leverageInput');
+            
+            if (tradeType === 'futures') {
+                leverageInput.classList.add('show');
+            } else {
+                leverageInput.classList.remove('show');
+            }
+        }
+
+        function handleInvestmentTypeChange() {
+            const investmentType = document.getElementById('investmentType').value;
+            const totalInvestmentInput = document.getElementById('totalInvestmentInput');
+            const perGridAmountInput = document.getElementById('perGridAmountInput');
+            
+            if (investmentType === 'total') {
+                totalInvestmentInput.style.display = 'block';
+                perGridAmountInput.style.display = 'none';
+            } else {
+                totalInvestmentInput.style.display = 'none';
+                perGridAmountInput.style.display = 'block';
+            }
+        }
+
+        function handleSymbolChange() {
+            const symbol = document.getElementById('symbol').value;
+            const perGridUnit = document.getElementById('perGridUnit');
+            const perGridAmount = document.getElementById('perGridAmount');
+            
+            if (symbol === 'BTCUSDT') {
+                perGridUnit.textContent = 'BTC';
+                perGridAmount.min = '0.001';
+                perGridAmount.step = '0.001';
+                perGridAmount.placeholder = '例如: 0.001';
+            } else {
+                perGridUnit.textContent = 'ETH';
+                perGridAmount.min = '0.01';
+                perGridAmount.step = '0.01';
+                perGridAmount.placeholder = '例如: 0.01';
+            }
+        }
+        
+        // 预览网格
+        async function previewGrid() {
+            const symbol = document.getElementById('symbol').value;
+            const gridCount = parseInt(document.getElementById('gridCount').value);
+            const gridHeight = parseFloat(document.getElementById('gridHeight').value);
+            const tradeType = document.querySelector('input[name="tradeType"]:checked').value;
+            const leverage = tradeType === 'futures' ? parseInt(document.getElementById('leverage').value) : undefined;
+            
+            const investmentType = document.getElementById('investmentType').value;
+            let investment = null;
+            let perGridAmount = null;
+            
+            if (investmentType === 'total') {
+                investment = parseFloat(document.getElementById('investment').value);
+                if (!investment || investment <= 0) {
+                    updateStatus('请输入有效的投资金额', 'error');
+                    return;
+                }
+            } else {
+                perGridAmount = parseFloat(document.getElementById('perGridAmount').value);
+                if (!perGridAmount || perGridAmount <= 0) {
+                    updateStatus('请输入有效的每格数量', 'error');
+                    return;
+                }
+            }
+
+            try {
+                const response = await fetch(config.apiUrl + config.previewUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        symbol,
+                        grid_count: gridCount,
+                        grid_height: gridHeight,
+                        investment,
+                        per_grid_amount: perGridAmount,
+                        trade_type: tradeType,
+                        leverage
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || '网格预览失败');
+                }
+
+                const data = await response.json();
+                displayGridPreview(data);
+                updateStatus('网格预览已更新', 'success');
+            } catch (error) {
+                updateStatus('错误: ' + error.message, 'error');
+            }
+        }
+
+        function displayGridPreview(data) {
+            const gridPreview = document.getElementById('gridLines');
+            let html = '';
+
+            if (!data || !data.data || !data.data.grid_prices || !data.data.grid_types) {
+                updateStatus('无效的网格数据', 'error');
+                return;
+            }
+
+            const { grid_prices, grid_types, quantity_per_grid, investment_per_grid, actual_investment_per_grid } = data.data;
+
+            grid_prices.forEach((price, index) => {
+                const type = grid_types[index];
+                const className = type === 'buy' ? 'buy' : 
+                                type === 'sell' ? 'sell' : 'current';
+                                
+                html += `
+                    <div class="grid-line ${className}">
+                        <div class="grid-info">
+                            <span class="grid-price">价格: ${price.toFixed(2)} USDT</span>
+                            <span class="grid-amount">数量: ${quantity_per_grid.toFixed(6)}</span>
+                            <span class="grid-investment">投资: ${actual_investment_per_grid.toFixed(2)} USDT</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            gridPreview.innerHTML = html;
+        }
+
+        async function startTrading() {
+            const symbol = document.getElementById('symbol').value;
+            const gridCount = parseInt(document.getElementById('gridCount').value);
+            const gridHeight = parseFloat(document.getElementById('gridHeight').value);
+            const tradeType = document.querySelector('input[name="tradeType"]:checked').value;
+            const leverage = tradeType === 'futures' ? parseInt(document.getElementById('leverage').value) : undefined;
+            
+            const investmentType = document.getElementById('investmentType').value;
+            let investment = null;
+            let perGridAmount = null;
+            
+            if (investmentType === 'total') {
+                investment = parseFloat(document.getElementById('investment').value);
+                if (!investment || investment <= 0) {
+                    updateStatus('请输入有效的投资金额', 'error');
+                    return;
+                }
+            } else {
+                perGridAmount = parseFloat(document.getElementById('perGridAmount').value);
+                if (!perGridAmount || perGridAmount <= 0) {
+                    updateStatus('请输入有效的每格数量', 'error');
+                    return;
+                }
+            }
+
+            try {
+                const response = await fetch(config.apiUrl + config.startTradingUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        symbol,
+                        gridCount,
+                        gridHeight,
+                        investment,
+                        perGridAmount,
+                        tradeType,
+                        leverage
+                    })
+                });
+
+                const data = await response.json();
+                if (data.status === 'success') {
+                    updateStatus('交易已启动', 'success');
+                    document.getElementById('startButton').disabled = true;
+                    document.getElementById('stopButton').disabled = false;
+                } else {
+                    throw new Error(data.message || '启动交易失败');
+                }
+            } catch (error) {
+                updateStatus('错误: ' + error.message, 'error');
+            }
+        }
+
+        async function stopTrading() {
+            try {
+                const response = await fetch(config.apiUrl + config.stopTradingUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                const data = await response.json();
+                if (data.status === 'success') {
+                    updateStatus('交易已停止', 'success');
+                    document.getElementById('startButton').disabled = false;
+                    document.getElementById('stopButton').disabled = true;
+                } else {
+                    throw new Error(data.message || '停止交易失败');
+                }
+            } catch (error) {
+                updateStatus('错误: ' + error.message, 'error');
+            }
+        }
+        
+        // 页面加载完成后初始化
+        window.onload = function() {
+            connectWebSocket();
+            initChart();
+            handleSymbolChange();  // 初始化每格数量单位
+            // 每分钟更新一次K线图
+            setInterval(updateChart, 60000);
+        };
+    </script>
 </body>
 </html> 
