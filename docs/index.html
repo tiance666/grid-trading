@@ -420,93 +420,37 @@
             const apiKey = document.getElementById('apiKey').value;
             const secretKey = document.getElementById('secretKey').value;
             
+            if (!apiKey || !secretKey) {
+                updateStatus('请输入API Key和Secret Key', 'error');
+                return;
+            }
+            
             try {
-                const response = await fetch(`${config.apiUrl}/api/config`, {
+                const response = await fetch(config.apiUrl + '/api/save_config', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Accept': 'application/json'
                     },
-                    body: JSON.stringify({ api_key: apiKey, api_secret: secretKey })
+                    body: JSON.stringify({
+                        api_key: apiKey,
+                        api_secret: secretKey
+                    })
                 });
                 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.detail || '保存配置失败');
+                    throw new Error('保存配置失败');
                 }
                 
-                showStatus('配置保存成功', 'success');
-                initWebSocket();  // 重新初始化WebSocket连接
+                const data = await response.json();
+                if (data.status === 'success') {
+                    updateStatus('配置保存成功', 'success');
+                } else {
+                    throw new Error(data.message || '配置保存失败');
+                }
             } catch (error) {
-                console.error('保存配置失败:', error);
-                showStatus(`保存配置失败: ${error.message}`, 'error');
+                console.error('保存配置错误:', error);
+                updateStatus('错误: ' + error.message, 'error');
             }
-        }
-
-        async function fetchKlines(symbol, interval) {
-            const maxRetries = 3;
-            let retryCount = 0;
-            
-            while (retryCount < maxRetries) {
-                try {
-                    const response = await fetch(`${config.apiUrl}${config.klineUrl}?symbol=${symbol}&interval=${interval}`);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    const data = await response.json();
-                    return data;
-                } catch (error) {
-                    retryCount++;
-                    console.warn(`获取K线数据失败，重试(${retryCount}/${maxRetries}):`, error);
-                    if (retryCount === maxRetries) {
-                        throw error;
-                    }
-                    await new Promise(resolve => setTimeout(resolve, 1000));  // 等待1秒后重试
-                }
-            }
-        }
-
-        function initWebSocket() {
-            if (window.priceSocket) {
-                window.priceSocket.close();
-            }
-
-            window.priceSocket = new WebSocket(config.wsUrl);
-            
-            window.priceSocket.onopen = () => {
-                console.log('WebSocket连接已建立');
-                showStatus('实时价格更新已连接', 'success');
-            };
-            
-            window.priceSocket.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    if (data.type === 'price') {
-                        updatePrice(data.symbol, data.price);
-                    }
-                } catch (error) {
-                    console.error('处理WebSocket消息失败:', error);
-                }
-            };
-            
-            window.priceSocket.onerror = (error) => {
-                console.error('WebSocket错误:', error);
-                showStatus('实时价格更新连接错误', 'error');
-            };
-            
-            window.priceSocket.onclose = () => {
-                console.log('WebSocket连接已关闭');
-                showStatus('实时价格更新已断开', 'error');
-                // 5秒后尝试重新连接
-                setTimeout(initWebSocket, 5000);
-            };
-        }
-
-        function showStatus(message, type = 'success') {
-            const statusDiv = document.getElementById('status');
-            statusDiv.textContent = message;
-            statusDiv.className = type;
-            statusDiv.style.display = 'block';
         }
 
         // 处理交易类型变化
