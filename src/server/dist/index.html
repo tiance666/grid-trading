@@ -5,8 +5,8 @@
     <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <script>
         const config = {
-            apiUrl: window.location.hostname === 'localhost' ? 'http://localhost:8000' : 'http://47.113.144.26:8000',  // 使用HTTP
-            wsUrl: window.location.hostname === 'localhost' ? 'ws://localhost:8000/ws' : 'ws://47.113.144.26:8000/ws',  // 使用WS
+            apiUrl: window.location.hostname === 'localhost' ? 'http://localhost:8000' : 'http://47.113.144.26:8000',  // 临时使用IP
+            wsUrl: window.location.hostname === 'localhost' ? 'ws://localhost:8000/ws' : 'ws://47.113.144.26:8000/ws',  // 临时使用IP
             klineUrl: '/api/klines',              // K线数据接口
             startTradingUrl: '/api/start',        // 开始交易接口
             stopTradingUrl: '/api/stop',          // 停止交易接口
