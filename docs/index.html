@@ -11,51 +11,132 @@
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
+            color: #333;
         }
         .container {
             background-color: #f5f5f5;
             border-radius: 8px;
             padding: 20px;
             margin-top: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #2c3e50;
         }
         h1 {
-            color: #333;
             text-align: center;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
         }
         .links {
             margin-top: 20px;
+            text-align: center;
         }
         .links a {
             display: inline-block;
             margin: 10px;
             padding: 10px 20px;
-            background-color: #007bff;
+            background-color: #3498db;
             color: white;
             text-decoration: none;
             border-radius: 4px;
+            transition: background-color 0.3s;
         }
         .links a:hover {
-            background-color: #0056b3;
+            background-color: #2980b9;
+        }
+        .feature-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .feature-list li {
+            margin: 10px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+        .feature-list li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #27ae60;
+        }
+        code {
+            background-color: #f8f9fa;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 10px 0;
         }
     </style>
 </head>
 <body>
     <h1>网格交易系统</h1>
+    
     <div class="container">
         <h2>项目简介</h2>
-        <p>这是一个基于 Binance API 的加密货币网格交易系统。系统支持：</p>
-        <ul>
-            <li>自动网格交易</li>
-            <li>多币种支持（BTC/USDT, ETH/USDT）</li>
-            <li>实时价格监控</li>
-            <li>灵活的网格配置</li>
+        <p>这是一个基于 Binance API 的加密货币网格交易系统。系统采用 FastAPI 构建，提供直观的 Web 界面，支持灵活的网格交易策略配置。</p>
+        
+        <h3>主要特点</h3>
+        <ul class="feature-list">
+            <li>自动网格交易：系统自动在设定价格区间内进行买卖操作</li>
+            <li>多币种支持：目前支持 BTC/USDT、ETH/USDT 交易对</li>
+            <li>实时价格监控：通过 WebSocket 实时更新市场价格</li>
+            <li>灵活配置：支持自定义网格数量、网格高度等参数</li>
+            <li>安全可靠：通过 API Key 认证，保障账户安全</li>
         </ul>
     </div>
+
+    <div class="container">
+        <h2>使用指南</h2>
+        <h3>系统要求</h3>
+        <ul>
+            <li>Python 3.8 或更高版本</li>
+            <li>Binance API Key 和 Secret Key</li>
+        </ul>
+
+        <h3>快速开始</h3>
+        <ol>
+            <li>克隆项目代码：<br>
+                <code>git clone https://github.com/tiance666/grid-trading.git</code>
+            </li>
+            <li>安装依赖：<br>
+                <code>pip install -r requirements.txt</code>
+            </li>
+            <li>启动服务器：<br>
+                <code>cd src/server && uvicorn app:app --host 0.0.0.0 --port 8000</code>
+            </li>
+        </ol>
+
+        <div class="warning">
+            <strong>注意：</strong> 在开始交易前，请确保：
+            <ul>
+                <li>已经理解网格交易的原理和风险</li>
+                <li>使用正确的 API 权限（仅需要交易权限）</li>
+                <li>从小额开始测试系统功能</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>配置说明</h2>
+        <h3>网格参数</h3>
+        <ul>
+            <li><strong>网格数量：</strong> 建议设置4-50个网格</li>
+            <li><strong>网格高度：</strong> 建议范围0.1%-10%，根据市场波动调整</li>
+            <li><strong>投资金额：</strong> 根据个人风险承受能力设置</li>
+        </ul>
+    </div>
+
     <div class="container">
         <h2>快速链接</h2>
         <div class="links">
-            <a href="https://tiance.kesug.com">访问交易系统</a>
             <a href="https://github.com/tiance666/grid-trading">查看源代码</a>
+            <a href="https://github.com/tiance666/grid-trading/issues">问题反馈</a>
         </div>
     </div>
 </body>
