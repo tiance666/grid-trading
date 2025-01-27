@@ -340,7 +340,15 @@
             const symbol = document.getElementById('symbol').value;
             const interval = document.getElementById('interval').value;
             try {
-                const response = await fetch(`${config.apiUrl}${config.klineUrl}?symbol=${symbol}&interval=${interval}`);
+                const response = await fetch(`${config.apiUrl}/api/klines?symbol=${symbol}&interval=${interval}`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    mode: 'cors'  // 明确指定跨域模式
+                });
+                
                 if (!response.ok) {
                     const error = await response.json();
                     throw new Error(error.detail || '获取K线数据失败');
@@ -374,31 +382,37 @@
         });
 
         function connectWebSocket() {
-            ws = new WebSocket(config.wsUrl);
+            if (window.priceSocket) {
+                window.priceSocket.close();
+            }
+
+            window.priceSocket = new WebSocket(config.wsUrl);
             
-            ws.onopen = function() {
+            window.priceSocket.onopen = () => {
                 console.log('WebSocket连接已建立');
-                updateStatus('WebSocket连接成功', 'success');
+                updateStatus('实时价格更新已连接', 'success');
             };
             
-            ws.onmessage = function(event) {
-                const data = JSON.parse(event.data);
-                if (data.type === 'price_update') {
-                    Object.entries(data.data).forEach(([symbol, price]) => {
-                        updatePrice(symbol, price);
-                    });
+            window.priceSocket.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'price') {
+                        updatePrice(data.symbol, data.price);
+                    }
+                } catch (error) {
+                    console.error('处理WebSocket消息失败:', error);
                 }
             };
             
-            ws.onclose = function() {
-                console.log('WebSocket连接已关闭');
-                updateStatus('WebSocket连接已断开，5秒后重试...', 'error');
-                setTimeout(connectWebSocket, 5000);
+            window.priceSocket.onerror = (error) => {
+                console.error('WebSocket错误:', error);
+                updateStatus('实时价格更新连接错误', 'error');
             };
             
-            ws.onerror = function(error) {
-                console.error('WebSocket错误:', error);
-                updateStatus('WebSocket连接错误', 'error');
+            window.priceSocket.onclose = () => {
+                console.log('WebSocket连接已关闭');
+                updateStatus('实时价格更新已断开，5秒后重试...', 'error');
+                setTimeout(connectWebSocket, 5000);
             };
         }
         
@@ -426,24 +440,29 @@
             }
             
             try {
-                const response = await fetch(config.apiUrl + '/api/save_config', {
+                const response = await fetch(`${config.apiUrl}/api/config`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Accept': 'application/json'
                     },
-                    body: JSON.stringify({
-                        api_key: apiKey,
-                        api_secret: secretKey
-                    })
+                    mode: 'cors',  // 明确指定跨域模式
+                    body: JSON.stringify({ api_key: apiKey, api_secret: secretKey })
                 });
                 
                 if (!response.ok) {
-                    throw new Error('保存配置失败');
+                    const error = await response.json();
+                    throw new Error(error.detail || '保存配置失败');
                 }
                 
                 const data = await response.json();
                 if (data.status === 'success') {
                     updateStatus('配置保存成功', 'success');
+                    // 重新连接WebSocket
+                    if (window.priceSocket) {
+                        window.priceSocket.close();
+                    }
+                    connectWebSocket();
                 } else {
                     throw new Error(data.message || '配置保存失败');
                 }
