@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "grid-trading"
+version = "0.1.0"
+description = "A grid trading bot for cryptocurrency"
+requires-python = ">=3.7"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "python-binance",
+    "pandas",
+    "ta",
+] 
