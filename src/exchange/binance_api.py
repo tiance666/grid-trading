@@ -9,6 +9,7 @@ import logging
 import time
 import hmac
 import hashlib
+import asyncio
 
 class BinanceAPI:
     def __init__(self, api_key=None, api_secret=None):
@@ -140,17 +141,25 @@ class BinanceAPI:
 
     async def get_klines(self, symbol: str, interval: str, limit: int = 500) -> List[List[Any]]:
         """获取K线数据"""
-        try:
-            klines = self.client.get_klines(
-                symbol=symbol,
-                interval=interval,
-                limit=limit
-            )
-            return klines
-        except Exception as e:
-            logging.error(f"获取K线数据失败: {str(e)}")
-            raise
-            
+        max_retries = 3
+        retry_count = 0
+        while retry_count < max_retries:
+            try:
+                klines = self.client.get_klines(
+                    symbol=symbol,
+                    interval=interval,
+                    limit=limit,
+                    timeout=30  # 增加超时时间到30秒
+                )
+                return klines
+            except Exception as e:
+                retry_count += 1
+                if retry_count == max_retries:
+                    logging.error(f"获取K线数据失败: {str(e)}")
+                    raise
+                logging.warning(f"获取K线数据失败，正在重试({retry_count}/{max_retries}): {str(e)}")
+                await asyncio.sleep(1)  # 等待1秒后重试
+
     async def get_klines_df(self, symbol: str, interval: str, limit: int = 100):
         """获取K线数据并计算技术指标"""
         try:
