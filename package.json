@@ -16,11 +16,15 @@
     },
     "win": {
       "target": "nsis",
-      "requestedExecutionLevel": "asInvoker",
-      "artifactName": "${productName}-Setup-${version}.${ext}"
+      "requestedExecutionLevel": "requireAdministrator",
+      "artifactName": "${productName}-Setup-${version}.${ext}",
+      "signAndEditExecutable": true,
+      "verifyUpdateCodeSignature": false,
+      "publisherName": "网格交易系统"
     },
     "nsis": {
       "oneClick": false,
+      "perMachine": true,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
@@ -29,9 +33,17 @@
       "allowElevation": true,
       "runAfterFinish": true,
       "installerLanguages": ["zh_CN"],
-      "language": "2052"
+      "language": "2052",
+      "include": "installer.nsh"
     },
     "asar": true,
+    "extraResources": [
+      {
+        "from": "src",
+        "to": "src",
+        "filter": ["**/*"]
+      }
+    ],
     "files": [
       "**/*",
       "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",

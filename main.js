@@ -1,25 +1,33 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const { spawn } = require('child_process');
+
+// 禁用安全警告
+process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = true;
 
 let mainWindow;
 let pythonProcess;
 
 function createWindow() {
-    mainWindow = new BrowserWindow({
+    const mainWindow = new BrowserWindow({
         width: 1200,
         height: 800,
         webPreferences: {
             nodeIntegration: true,
-            contextIsolation: false
+            contextIsolation: false,
+            enableRemoteModule: true,
+            webSecurity: false
         }
     });
 
     // 加载本地 HTML 文件
-    mainWindow.loadFile('src/server/dist/index.html');
+    mainWindow.loadFile('src/index.html');
 
-    // 打开开发者工具（可选）
-    // mainWindow.webContents.openDevTools();
+    // 开发环境下打开开发者工具
+    if (process.env.NODE_ENV === 'development') {
+        mainWindow.webContents.openDevTools();
+    }
 }
 
 function startPythonServer() {
@@ -62,4 +70,14 @@ app.on('before-quit', () => {
     if (pythonProcess) {
         pythonProcess.kill();
     }
+});
+
+// 处理未捕获的异常
+process.on('uncaughtException', (error) => {
+    console.error('未捕获的异常:', error);
+});
+
+// 处理未处理的 Promise 拒绝
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('未处理的 Promise 拒绝:', reason);
 }); 
