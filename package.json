@@ -1,0 +1,53 @@
+{
+  "name": "grid-trading",
+  "version": "1.0.0",
+  "description": "网格交易系统桌面应用",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "build": {
+    "appId": "com.gridtrading.app",
+    "productName": "网格交易系统",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": ["nsis"]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "extraResources": [
+      {
+        "from": "src",
+        "to": "src",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "requirements.txt",
+        "to": "requirements.txt"
+      }
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tiance666/grid-trading.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tiance666/grid-trading/issues"
+  },
+  "homepage": "https://github.com/tiance666/grid-trading#readme",
+  "devDependencies": {
+    "electron": "^29.1.4",
+    "electron-builder": "^24.13.3"
+  }
+}

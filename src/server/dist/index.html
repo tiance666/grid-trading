@@ -1,12 +1,14 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>网格交易系统</title>
     <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <script>
         const config = {
-            apiUrl: window.location.hostname === 'localhost' ? 'http://localhost:8000' : 'http://47.113.144.26:8000',  // 临时使用IP
-            wsUrl: window.location.hostname === 'localhost' ? 'ws://localhost:8000/ws' : 'ws://47.113.144.26:8000/ws',  // 临时使用IP
+            apiUrl: 'http://localhost:8001',  // 本地开发环境
+            wsUrl: 'ws://localhost:8001/ws',  // 本地开发环境
             klineUrl: '/api/klines',              // K线数据接口
             startTradingUrl: '/api/start',        // 开始交易接口
             stopTradingUrl: '/api/stop',          // 停止交易接口
@@ -176,6 +178,11 @@
             border-radius: 4px;
             border: 1px solid #ddd;
         }
+        .chart-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -188,12 +195,12 @@
                 <div class="section">
                     <h2>API配置</h2>
                     <div class="form-group">
-                        <label for="apiKey">API Key:</label>
-                        <input type="text" id="apiKey" placeholder="输入 Binance API Key">
+                        <label for="apiKey">API密钥:</label>
+                        <input type="text" id="apiKey" placeholder="输入 Binance API密钥">
                     </div>
                     <div class="form-group">
-                        <label for="secretKey">Secret Key:</label>
-                        <input type="password" id="secretKey" placeholder="输入 Binance Secret Key">
+                        <label for="secretKey">密钥:</label>
+                        <input type="password" id="secretKey" placeholder="输入 Binance 密钥">
                     </div>
                     <button onclick="saveConfig()">保存配置</button>
                 </div>
@@ -247,12 +254,8 @@
                         <span id="perGridUnit">BTC</span>
                     </div>
                     <button onclick="previewGrid()">预览网格</button>
-                </div>
-
-                <!-- 交易控制部分 -->
-                <div class="section">
-                    <button onclick="startTrading()" id="startButton">开始交易</button>
-                    <button onclick="stopTrading()" id="stopButton" class="danger">停止交易</button>
+                    <button onclick="startTrading()">开始交易</button>
+                    <button onclick="stopTrading()" class="danger">停止交易</button>
                 </div>
             </div>
 
@@ -261,16 +264,21 @@
                 <div class="section">
                     <div class="chart-header">
                         <h2>K线图</h2>
-                        <select id="interval" class="interval-select" onchange="updateChart()">
-                            <option value="1m">1分钟</option>
-                            <option value="3m">3分钟</option>
-                            <option value="5m">5分钟</option>
-                            <option value="15m">15分钟</option>
-                            <option value="30m">30分钟</option>
-                            <option value="1h">1小时</option>
-                            <option value="4h">4小时</option>
-                            <option value="1d">1天</option>
-                        </select>
+                        <!-- K线图控制区域 -->
+                        <div class="chart-controls">
+                            <select id="interval" onchange="changeInterval()">
+                                <option value="1m">1分钟</option>
+                                <option value="3m">3分钟</option>
+                                <option value="5m">5分钟</option>
+                                <option value="15m">15分钟</option>
+                                <option value="30m">30分钟</option>
+                                <option value="1h">1小时</option>
+                                <option value="4h">4小时</option>
+                                <option value="1d">1天</option>
+                            </select>
+                            <input type="date" id="startDate" onchange="updateKlines()">
+                            <input type="date" id="endDate" onchange="updateKlines()">
+                        </div>
                     </div>
                     <div id="chart" class="chart-container"></div>
                 </div>
@@ -383,10 +391,8 @@
             
             ws.onmessage = function(event) {
                 const data = JSON.parse(event.data);
-                if (data.type === 'price_update') {
-                    Object.entries(data.data).forEach(([symbol, price]) => {
-                        updatePrice(symbol, price);
-                    });
+                if (data.type === 'price') {
+                    updatePrice(data.symbol, data.price);
                 }
             };
             
@@ -584,57 +590,58 @@
         }
 
         async function startTrading() {
-            const symbol = document.getElementById('symbol').value;
-            const gridCount = parseInt(document.getElementById('gridCount').value);
-            const gridHeight = parseFloat(document.getElementById('gridHeight').value);
-            const tradeType = document.querySelector('input[name="tradeType"]:checked').value;
-            const leverage = tradeType === 'futures' ? parseInt(document.getElementById('leverage').value) : undefined;
-            
-            const investmentType = document.getElementById('investmentType').value;
-            let investment = null;
-            let perGridAmount = null;
-            
-            if (investmentType === 'total') {
-                investment = parseFloat(document.getElementById('investment').value);
-                if (!investment || investment <= 0) {
-                    updateStatus('请输入有效的投资金额', 'error');
-                    return;
-                }
-            } else {
-                perGridAmount = parseFloat(document.getElementById('perGridAmount').value);
-                if (!perGridAmount || perGridAmount <= 0) {
-                    updateStatus('请输入有效的每格数量', 'error');
-                    return;
-                }
-            }
-
             try {
-                const response = await fetch(config.apiUrl + config.startTradingUrl, {
+                // 获取所有配置参数
+                const symbol = document.getElementById('symbol').value;
+                const gridCount = parseInt(document.getElementById('gridCount').value);
+                const gridHeight = parseFloat(document.getElementById('gridHeight').value);
+                const tradeType = document.querySelector('input[name="tradeType"]:checked').value;
+                const leverage = tradeType === 'futures' ? parseInt(document.getElementById('leverage').value) : undefined;
+                
+                // 获取投资方式和金额
+                const investmentType = document.getElementById('investmentType').value;
+                let investment, perGridAmount;
+                if (investmentType === 'total') {
+                    investment = parseFloat(document.getElementById('investment').value);
+                    perGridAmount = undefined;
+                } else {
+                    perGridAmount = parseFloat(document.getElementById('perGridAmount').value);
+                    investment = undefined;
+                }
+
+                // 构建请求数据
+                const requestConfig = {
+                    symbol,
+                    grid_count: gridCount,
+                    grid_height: gridHeight,
+                    trade_type: tradeType,
+                    leverage,
+                    investment,
+                    per_grid_amount: perGridAmount
+                };
+
+                // 发送请求
+                const response = await fetch(`${config.apiUrl}${config.startTradingUrl}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Accept': 'application/json'
                     },
-                    body: JSON.stringify({
-                        symbol,
-                        gridCount,
-                        gridHeight,
-                        investment,
-                        perGridAmount,
-                        tradeType,
-                        leverage
-                    })
+                    body: JSON.stringify(requestConfig)
                 });
 
                 const data = await response.json();
-                if (data.status === 'success') {
-                    updateStatus('交易已启动', 'success');
-                    document.getElementById('startButton').disabled = true;
-                    document.getElementById('stopButton').disabled = false;
-                } else {
-                    throw new Error(data.message || '启动交易失败');
+                
+                if (!response.ok) {
+                    throw new Error(data.detail || '启动交易失败');
                 }
+
+                // 更新状态显示
+                document.getElementById('status').textContent = '交易已启动';
+                document.getElementById('status').className = 'success';
             } catch (error) {
-                updateStatus('错误: ' + error.message, 'error');
+                document.getElementById('status').textContent = `错误: ${error.message}`;
+                document.getElementById('status').className = 'error';
             }
         }
 
@@ -668,6 +675,35 @@
             // 每分钟更新一次K线图
             setInterval(updateChart, 60000);
         };
+
+        async function updateKlines() {
+            const symbol = document.getElementById('symbol').value;
+            const interval = document.getElementById('interval').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            try {
+                let url = `${config.apiUrl}/api/klines?symbol=${symbol}&interval=${interval}`;
+                if (startDate) {
+                    url += `&start_time=${startDate}`;
+                }
+                if (endDate) {
+                    url += `&end_time=${endDate}`;
+                }
+                
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error('获取K线数据失败');
+                }
+                
+                const data = await response.json();
+                candlestickSeries.setData(data);
+            } catch (error) {
+                console.error('更新K线数据失败:', error);
+                document.getElementById('status').textContent = `错误: ${error.message}`;
+                document.getElementById('status').className = 'error';
+            }
+        }
     </script>
 </body>
 </html> 

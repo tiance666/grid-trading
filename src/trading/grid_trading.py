@@ -41,41 +41,20 @@ class GridTradingStrategy:
         
     def calculate_quantity(self, price):
         """计算每个网格的交易数量"""
-        try:
-            if self.per_grid_amount:
-                quantity = self.per_grid_amount
-            else:
-                # 计算每格投资金额
-                grid_investment = self.investment / self.total_grids
-                
-                # 合约交易下,实际投资金额需要除以杠杆倍数
-                if self.is_futures:
-                    actual_investment = grid_investment / self.leverage
-                else:
-                    actual_investment = grid_investment
-                    
-                quantity = actual_investment / price
-
-            # 设置最小交易量为0.002 BTC
-            if self.symbol == "BTCUSDT":
-                min_qty = 0.002
-                precision = 3
-            elif self.symbol == "ETHUSDT":
-                min_qty = 0.01
-                precision = 2
-            else:
-                min_qty = 0.00001
-                precision = 5
-
-            # 确保数量不小于最小交易量
-            quantity = max(float(Decimal(str(quantity)).quantize(Decimal(str(min_qty)), rounding=ROUND_DOWN)), min_qty)
+        if self.per_grid_amount:
+            return self.per_grid_amount
             
-            # 确保返回的是字符串格式
-            return f"{quantity:.{precision}f}"
+        grid_investment = self.investment / self.total_grids
+        if self.is_futures:
+            grid_investment *= self.leverage
             
-        except Exception as e:
-            logging.error(f"计算交易数量失败: {str(e)}")
-            raise Exception(f"计算交易数量失败: {str(e)}")
+        quantity = grid_investment / price
+        # 根据不同交易对调整数量精度
+        if self.symbol == "BTCUSDT":
+            return float(Decimal(str(quantity)).quantize(Decimal('0.001'), rounding=ROUND_DOWN))
+        elif self.symbol == "ETHUSDT":
+            return float(Decimal(str(quantity)).quantize(Decimal('0.01'), rounding=ROUND_DOWN))
+        return float(Decimal(str(quantity)).quantize(Decimal('0.00001'), rounding=ROUND_DOWN))
         
     async def setup_grids(self):
         """设置网格"""
@@ -112,7 +91,7 @@ class GridTradingStrategy:
                     is_futures=self.is_futures
                 )
                 self.active_orders[sell_order['orderId']] = sell_order
-            
+                
         except Exception as e:
             raise Exception(f"设置网格失败: {str(e)}")
 
@@ -129,36 +108,12 @@ class GridTradingStrategy:
             
     async def start(self):
         """启动网格交易"""
-        try:
-            if self.is_running:
-                raise Exception("交易已在运行中")
-                
-            self.is_running = True
-            logging.info(f"开始{self.symbol}的网格交易")
+        if self.is_running:
+            return
             
-            # 如果是合约交易，需要先进行初始化设置
-            if self.is_futures:
-                # 初始化合约仓位
-                await self.exchange.init_futures_position(self.symbol)
-                # 设置杠杆倍数
-                await self.exchange.set_leverage(self.symbol, self.leverage)
-                
-            # 获取当前价格
-            self.current_price = await self.exchange.get_price(self.symbol, self.is_futures)
-            if not self.current_price:
-                raise Exception("无法获取当前价格")
-                
-            # 计算网格价格并设置订单
-            await self.setup_grids()
-            
-            # 启动订单监控
-            self.monitor_task = asyncio.create_task(self.monitor_orders())
-            logging.info("网格交易启动成功")
-            
-        except Exception as e:
-            self.is_running = False
-            logging.error(f"启动网格交易失败: {str(e)}")
-            raise
+        self.is_running = True
+        await self.setup_grids()
+        asyncio.create_task(self.monitor_orders())
         
     async def stop(self):
         """停止网格交易"""

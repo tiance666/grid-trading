@@ -140,7 +140,9 @@ class APIConfig(BaseModel):
 
 @app.get("/")
 async def root():
-    return FileResponse(str(current_dir / "dist" / "index.html"))
+    current_dir = Path(__file__).parent
+    index_path = current_dir / "dist" / "index.html"
+    return FileResponse(str(index_path))
 
 @app.post("/api/save_config")
 async def save_api_config(config: APIConfig):
@@ -163,12 +165,15 @@ async def save_api_config(config: APIConfig):
 
 # 添加K线数据获取端点
 @app.get("/api/klines")
-async def get_klines(symbol: str, interval: str = "1m"):
+async def get_klines(symbol: str, interval: str = "1m", limit: int = 100, start_time: str = None, end_time: str = None):
     """获取K线数据
     
     Args:
         symbol: 交易对
         interval: K线间隔，支持 1m, 3m, 5m, 15m, 30m, 1h, 4h, 1d
+        limit: 获取的K线数量，默认100
+        start_time: 开始时间，格式如 "2023-01-01"
+        end_time: 结束时间，格式如 "2024-01-01"
     """
     try:
         # 验证时间间隔
@@ -176,13 +181,21 @@ async def get_klines(symbol: str, interval: str = "1m"):
         if interval not in valid_intervals:
             raise ValueError(f"无效的时间间隔，支持的间隔: {', '.join(valid_intervals)}")
             
-        # 根据不同的时间间隔调整获取的K线数量
-        limit = 100
-        if interval in ["4h", "1d"]:
-            limit = 200  # 较大时间周期获取更多数据
-            
-        # 使用公共API获取K线数据
-        klines = await public_api.get_klines(symbol, interval=interval, limit=limit)
+        # 如果提供了时间范围，使用历史K线接口
+        if start_time:
+            klines = await public_api.get_historical_klines(
+                symbol=symbol,
+                interval=interval,
+                start_str=start_time,
+                end_str=end_time
+            )
+        else:
+            # 否则使用普通K线接口
+            klines = await public_api.get_klines(
+                symbol=symbol,
+                interval=interval,
+                limit=limit
+            )
         
         # 转换数据格式以适应图表库
         formatted_klines = []

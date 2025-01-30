@@ -18,8 +18,24 @@ class BinanceAPI:
         
         # 初始化客户端
         if self.api_key and self.api_secret:
+            # 现货API客户端
             self.client = Client(self.api_key, self.api_secret)
+            
+            # 合约API客户端
             self.futures_client = Client(self.api_key, self.api_secret)
+            self.futures_client.API_URL = 'https://fapi.binance.com/fapi'  # 使用主网API
+            
+            # 设置请求头和时间戳
+            self.client.session.headers.update({
+                'X-MBX-APIKEY': self.api_key
+            })
+            self.futures_client.session.headers.update({
+                'X-MBX-APIKEY': self.api_key
+            })
+            
+            # 设置时间同步
+            self.client.get_server_time()
+            self.futures_client.futures_time()
         else:
             self.client = Client(None, None)
             self.futures_client = None
@@ -39,59 +55,38 @@ class BinanceAPI:
     async def get_price(self, symbol, is_futures=False):
         """获取当前价格"""
         try:
-            if is_futures and not self.futures_client:
-                raise Exception("无密钥模式不支持合约操作")
-                
             if is_futures:
                 ticker = self.futures_client.futures_symbol_ticker(symbol=symbol)
             else:
                 ticker = self.client.get_symbol_ticker(symbol=symbol)
             return float(ticker['price'])
-        except Exception as e:
-            logging.error(f"获取价格失败: {str(e)}")
-            raise
+        except BinanceAPIException as e:
+            raise Exception(f"获取价格失败: {str(e)}")
             
     async def create_order(self, symbol, side, order_type, quantity, price=None, is_futures=False):
         """创建订单"""
-        self._check_auth()
         try:
-            # 确保quantity是字符串格式
-            quantity = str(quantity)
+            params = {
+                'symbol': symbol,
+                'side': side.upper(),
+                'type': order_type.upper(),
+                'quantity': quantity,
+            }
             
+            if price:
+                params['price'] = price
+                params['timeInForce'] = 'GTC'
+                
             if is_futures:
-                params = {
-                    'symbol': symbol,
-                    'side': side.upper(),
-                    'type': order_type.upper(),
-                    'quantity': quantity
-                }
-                
-                if price:
-                    params['price'] = str(price)
-                    params['timeInForce'] = 'GTC'
-                
-                return self.futures_client.futures_create_order(**params)
+                order = self.futures_client.futures_create_order(**params)
             else:
-                params = {
-                    'symbol': symbol,
-                    'side': side.upper(),
-                    'type': order_type.upper(),
-                    'quantity': quantity
-                }
-                
-                if price:
-                    params['price'] = str(price)
-                    params['timeInForce'] = 'GTC'
-                
-                return self.client.create_order(**params)
-                
-        except Exception as e:
-            logging.error(f"创建订单失败: {str(e)}")
-            raise
+                order = self.client.create_order(**params)
+            return order
+        except BinanceAPIException as e:
+            raise Exception(f"创建订单失败: {str(e)}")
             
     async def get_balance(self, asset, is_futures=False):
         """获取资产余额"""
-        self._check_auth()
         try:
             if is_futures:
                 balance = self.futures_client.futures_account_balance()
@@ -118,9 +113,8 @@ class BinanceAPI:
                     symbol=symbol,
                     orderId=order_id
                 )
-        except Exception as e:
-            logging.error(f"取消订单失败: {str(e)}")
-            raise
+        except BinanceAPIException as e:
+            raise Exception(f"取消订单失败: {str(e)}")
 
     async def init_futures_position(self, symbol):
         """初始化合约仓位"""
@@ -139,26 +133,52 @@ class BinanceAPI:
         except BinanceAPIException as e:
             raise Exception(f"初始化合约仓位失败: {str(e)}")
 
-    async def get_klines(self, symbol: str, interval: str, limit: int = 500) -> List[List[Any]]:
-        """获取K线数据"""
-        max_retries = 3
-        retry_count = 0
-        while retry_count < max_retries:
-            try:
-                klines = self.client.get_klines(
-                    symbol=symbol,
-                    interval=interval,
-                    limit=limit,
-                    timeout=30  # 增加超时时间到30秒
-                )
-                return klines
-            except Exception as e:
-                retry_count += 1
-                if retry_count == max_retries:
-                    logging.error(f"获取K线数据失败: {str(e)}")
-                    raise
-                logging.warning(f"获取K线数据失败，正在重试({retry_count}/{max_retries}): {str(e)}")
-                await asyncio.sleep(1)  # 等待1秒后重试
+    async def get_klines(self, symbol: str, interval: str, limit: int = 1000, start_time: int = None, end_time: int = None):
+        """获取K线数据
+        
+        Args:
+            symbol: 交易对
+            interval: K线间隔
+            limit: 获取数量
+            start_time: 开始时间戳（毫秒）
+            end_time: 结束时间戳（毫秒）
+        """
+        try:
+            params = {
+                'symbol': symbol,
+                'interval': interval,
+                'limit': limit
+            }
+            
+            if start_time:
+                params['startTime'] = start_time
+            if end_time:
+                params['endTime'] = end_time
+                
+            klines = self.client.get_klines(**params)
+            return klines
+        except BinanceAPIException as e:
+            raise Exception(f"获取K线数据失败: {str(e)}")
+
+    async def get_historical_klines(self, symbol: str, interval: str, start_str: str, end_str: str = None):
+        """获取历史K线数据
+        
+        Args:
+            symbol: 交易对
+            interval: K线间隔
+            start_str: 开始时间，如 "1 Dec, 2017"
+            end_str: 结束时间，如 "1 Jan, 2018"，不指定则为当前时间
+        """
+        try:
+            klines = self.client.get_historical_klines(
+                symbol=symbol,
+                interval=interval,
+                start_str=start_str,
+                end_str=end_str
+            )
+            return klines
+        except BinanceAPIException as e:
+            raise Exception(f"获取历史K线数据失败: {str(e)}")
 
     async def get_klines_df(self, symbol: str, interval: str, limit: int = 100):
         """获取K线数据并计算技术指标"""

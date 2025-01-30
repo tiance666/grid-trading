@@ -1,180 +1,47 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-    <title>网格交易系统</title>
-    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
-    <script>
-        const config = {
-            apiUrl: window.location.hostname === 'localhost' ? 'http://localhost:8000' : 'http://47.113.144.26:8000',  // 临时使用IP
-            wsUrl: window.location.hostname === 'localhost' ? 'ws://localhost:8000/ws' : 'ws://47.113.144.26:8000/ws',  // 临时使用IP
-            klineUrl: '/api/klines',              // K线数据接口
-            startTradingUrl: '/api/start',        // 开始交易接口
-            stopTradingUrl: '/api/stop',          // 停止交易接口
-            previewUrl: '/api/preview'            // 预览网格接口
-        };
-    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网格交易系统 - 下载</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
             background-color: #f5f5f5;
         }
         .container {
-            max-width: 1200px;
-            margin: 0 auto;
             background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
-        .main-content {
-            display: flex;
-            gap: 20px;
+        h1 {
+            color: #333;
+            text-align: center;
         }
-        .left-panel {
-            flex: 1;
-            min-width: 300px;
-        }
-        .right-panel {
-            flex: 2;
-        }
-        .section {
-            margin-bottom: 20px;
-            padding: 15px;
-            background-color: #f8f9fa;
-            border-radius: 4px;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        button {
+        .download-btn {
+            display: inline-block;
             background-color: #007bff;
             color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            width: 100%;
-            margin-bottom: 10px;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+            text-align: center;
+            width: 200px;
         }
-        button:hover {
+        .download-btn:hover {
             background-color: #0056b3;
         }
-        button.danger {
-            background-color: #dc3545;
+        .features {
+            margin: 30px 0;
         }
-        button.danger:hover {
-            background-color: #c82333;
-        }
-        .price-display {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        .price-box {
-            flex: 1;
-            padding: 15px;
-            background-color: #e9ecef;
-            border-radius: 4px;
-            text-align: center;
-        }
-        .price-box .symbol {
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        .grid-preview {
-            margin-top: 20px;
-        }
-        .grid-line {
-            padding: 10px;
-            margin: 5px 0;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-        .grid-line.buy {
-            background-color: rgba(40, 167, 69, 0.1);
-            border-left: 4px solid #28a745;
-        }
-        .grid-line.sell {
-            background-color: rgba(220, 53, 69, 0.1);
-            border-left: 4px solid #dc3545;
-        }
-        .grid-line.current {
-            background-color: rgba(0, 123, 255, 0.1);
-            border-left: 4px solid #007bff;
-        }
-        .grid-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .grid-price, .grid-amount, .grid-investment {
-            flex: 1;
-            text-align: center;
-        }
-        #status {
-            margin-top: 20px;
-            padding: 10px;
-            border-radius: 4px;
-            text-align: center;
-        }
-        #status.success {
-            background-color: rgba(40, 167, 69, 0.1);
-            color: #28a745;
-        }
-        #status.error {
-            background-color: rgba(220, 53, 69, 0.1);
-            color: #dc3545;
-        }
-        .chart-container {
-            height: 400px;
-            margin-bottom: 20px;
-            background: white;
-            border-radius: 4px;
-            border: 1px solid #ddd;
-        }
-        .trade-type-switch {
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-        }
-        .trade-type-switch label {
-            margin-right: 10px;
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-        }
-        .trade-type-switch input[type="radio"] {
-            margin-right: 5px;
-        }
-        .leverage-input {
-            display: none;
-        }
-        .leverage-input.show {
-            display: block;
-        }
-        .chart-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        .interval-select {
-            padding: 5px;
-            border-radius: 4px;
-            border: 1px solid #ddd;
+        .feature-item {
+            margin: 10px 0;
         }
     </style>
 </head>
@@ -182,511 +49,39 @@
     <div class="container">
         <h1>网格交易系统</h1>
         
-        <div class="main-content">
-            <div class="left-panel">
-                <!-- API配置部分 -->
-                <div class="section">
-                    <h2>API配置</h2>
-                    <div class="form-group">
-                        <label for="apiKey">API Key:</label>
-                        <input type="text" id="apiKey" placeholder="输入 Binance API Key">
-                    </div>
-                    <div class="form-group">
-                        <label for="secretKey">Secret Key:</label>
-                        <input type="password" id="secretKey" placeholder="输入 Binance Secret Key">
-                    </div>
-                    <button onclick="saveConfig()">保存配置</button>
-                </div>
+        <div style="text-align: center;">
+            <a href="网格交易系统 Setup 1.0.0.exe" class="download-btn">
+                下载最新版本
+            </a>
+        </div>
 
-                <!-- 网格配置部分 -->
-                <div class="section">
-                    <h2>网格配置</h2>
-                    <div class="form-group trade-type-switch">
-                        <label>
-                            <input type="radio" name="tradeType" value="spot" checked onchange="handleTradeTypeChange()">
-                            <span>现货</span>
-                        </label>
-                        <label>
-                            <input type="radio" name="tradeType" value="futures" onchange="handleTradeTypeChange()">
-                            <span>合约</span>
-                        </label>
-                    </div>
-                    <div id="leverageInput" class="form-group leverage-input">
-                        <label for="leverage">杠杆倍数 (1-125):</label>
-                        <input type="number" id="leverage" min="1" max="125" value="10">
-                    </div>
-                    <div class="form-group">
-                        <label for="symbol">交易对:</label>
-                        <select id="symbol" onchange="updateChart(); handleSymbolChange()">
-                            <option value="BTCUSDT">BTC/USDT</option>
-                            <option value="ETHUSDT">ETH/USDT</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="gridCount">网格数量 (4-50):</label>
-                        <input type="number" id="gridCount" min="4" max="50" value="10">
-                    </div>
-                    <div class="form-group">
-                        <label for="gridHeight">网格高度 (0.1%-10%):</label>
-                        <input type="number" id="gridHeight" min="0.1" max="10" step="0.1" value="1">
-                    </div>
-                    <div class="form-group">
-                        <label>投资方式:</label>
-                        <select id="investmentType" onchange="handleInvestmentTypeChange()">
-                            <option value="total">总投资金额</option>
-                            <option value="per_grid">每格数量</option>
-                        </select>
-                    </div>
-                    <div id="totalInvestmentInput" class="form-group">
-                        <label for="investment">总投资金额 (USDT):</label>
-                        <input type="number" id="investment" min="1" step="0.1">
-                    </div>
-                    <div id="perGridAmountInput" class="form-group" style="display: none;">
-                        <label for="perGridAmount">每格数量:</label>
-                        <input type="number" id="perGridAmount" min="0.001" step="0.001">
-                        <span id="perGridUnit">BTC</span>
-                    </div>
-                    <button onclick="previewGrid()">预览网格</button>
-                </div>
+        <div class="features">
+            <h2>主要功能：</h2>
+            <div class="feature-item">✅ 支持BTC/USDT和ETH/USDT交易对</div>
+            <div class="feature-item">✅ 实时价格显示和K线图表</div>
+            <div class="feature-item">✅ 自定义网格参数</div>
+            <div class="feature-item">✅ 支持现货和合约交易</div>
+            <div class="feature-item">✅ 本地API密钥存储，安全可靠</div>
+        </div>
 
-                <!-- 交易控制部分 -->
-                <div class="section">
-                    <button onclick="startTrading()" id="startButton">开始交易</button>
-                    <button onclick="stopTrading()" id="stopButton" class="danger">停止交易</button>
-                </div>
-            </div>
+        <div class="system-requirements">
+            <h2>系统要求：</h2>
+            <ul>
+                <li>Windows 7/8/10/11</li>
+                <li>4GB RAM以上</li>
+                <li>500MB可用磁盘空间</li>
+            </ul>
+        </div>
 
-            <div class="right-panel">
-                <!-- K线图显示区域 -->
-                <div class="section">
-                    <div class="chart-header">
-                        <h2>K线图</h2>
-                        <select id="interval" class="interval-select" onchange="updateChart()">
-                            <option value="1m">1分钟</option>
-                            <option value="3m">3分钟</option>
-                            <option value="5m">5分钟</option>
-                            <option value="15m">15分钟</option>
-                            <option value="30m">30分钟</option>
-                            <option value="1h">1小时</option>
-                            <option value="4h">4小时</option>
-                            <option value="1d">1天</option>
-                        </select>
-                    </div>
-                    <div id="chart" class="chart-container"></div>
-                </div>
-
-                <!-- 价格显示区域 -->
-                <div class="price-display">
-                    <div class="price-box">
-                        <div class="symbol">BTC/USDT</div>
-                        <div id="btc-price">等待连接...</div>
-                    </div>
-                    <div class="price-box">
-                        <div class="symbol">ETH/USDT</div>
-                        <div id="eth-price">等待连接...</div>
-                    </div>
-                </div>
-
-                <!-- 网格预览区域 -->
-                <div class="section grid-preview" id="gridPreview">
-                    <h2>网格预览</h2>
-                    <div id="gridLines"></div>
-                </div>
-
-                <!-- 状态显示区域 -->
-                <div id="status"></div>
-            </div>
+        <div class="installation">
+            <h2>安装说明：</h2>
+            <ol>
+                <li>下载安装程序</li>
+                <li>双击运行安装程序</li>
+                <li>按照安装向导完成安装</li>
+                <li>使用桌面快捷方式启动程序</li>
+            </ol>
         </div>
     </div>
-
-    <script>
-        let ws;
-        let chart;
-        let candlestickSeries;
-        
-        // 初始化图表
-        function initChart() {
-            const chartElement = document.getElementById('chart');
-            chart = LightweightCharts.createChart(chartElement, {
-                width: chartElement.clientWidth,
-                height: chartElement.clientHeight,
-                layout: {
-                    backgroundColor: '#ffffff',
-                    textColor: '#333',
-                },
-                grid: {
-                    vertLines: {
-                        color: '#f0f0f0',
-                    },
-                    horzLines: {
-                        color: '#f0f0f0',
-                    },
-                },
-                crosshair: {
-                    mode: LightweightCharts.CrosshairMode.Normal,
-                },
-                timeScale: {
-                    timeVisible: true,
-                    secondsVisible: false,
-                }
-            });
-
-            candlestickSeries = chart.addCandlestickSeries();
-            updateChart();
-        }
-
-        // 更新K线图数据
-        async function updateChart() {
-            const symbol = document.getElementById('symbol').value;
-            const interval = document.getElementById('interval').value;
-            try {
-                const response = await fetch(`${config.apiUrl}/api/klines?symbol=${symbol}&interval=${interval}`, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    },
-                    mode: 'cors'  // 明确指定跨域模式
-                });
-                
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.detail || '获取K线数据失败');
-                }
-                const data = await response.json();
-                if (!Array.isArray(data)) {
-                    throw new Error('无效的K线数据格式');
-                }
-                candlestickSeries.setData(data.map(kline => ({
-                    time: kline.time,
-                    open: kline.open,
-                    high: kline.high,
-                    low: kline.low,
-                    close: kline.close
-                })));
-            } catch (error) {
-                console.error('更新K线图失败:', error);
-                updateStatus('获取K线数据失败: ' + error.message, 'error');
-            }
-        }
-
-        // 监听窗口大小变化
-        window.addEventListener('resize', () => {
-            if (chart) {
-                const chartElement = document.getElementById('chart');
-                chart.applyOptions({
-                    width: chartElement.clientWidth,
-                    height: chartElement.clientHeight
-                });
-            }
-        });
-
-        function connectWebSocket() {
-            if (window.priceSocket) {
-                window.priceSocket.close();
-            }
-
-            window.priceSocket = new WebSocket(config.wsUrl);
-            
-            window.priceSocket.onopen = () => {
-                console.log('WebSocket连接已建立');
-                updateStatus('实时价格更新已连接', 'success');
-            };
-            
-            window.priceSocket.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    if (data.type === 'price') {
-                        updatePrice(data.symbol, data.price);
-                    }
-                } catch (error) {
-                    console.error('处理WebSocket消息失败:', error);
-                }
-            };
-            
-            window.priceSocket.onerror = (error) => {
-                console.error('WebSocket错误:', error);
-                updateStatus('实时价格更新连接错误', 'error');
-            };
-            
-            window.priceSocket.onclose = () => {
-                console.log('WebSocket连接已关闭');
-                updateStatus('实时价格更新已断开，5秒后重试...', 'error');
-                setTimeout(connectWebSocket, 5000);
-            };
-        }
-        
-        function updatePrice(symbol, price) {
-            const elementId = symbol.toLowerCase().replace('usdt', '-price');
-            const element = document.getElementById(elementId);
-            if (element) {
-                element.textContent = parseFloat(price).toFixed(2);
-            }
-        }
-
-        function updateStatus(message, type) {
-            const statusDiv = document.getElementById('status');
-            statusDiv.textContent = message;
-            statusDiv.className = type;
-        }
-        
-        async function saveConfig() {
-            const apiKey = document.getElementById('apiKey').value;
-            const secretKey = document.getElementById('secretKey').value;
-            
-            if (!apiKey || !secretKey) {
-                updateStatus('请输入API Key和Secret Key', 'error');
-                return;
-            }
-            
-            try {
-                const response = await fetch(`${config.apiUrl}/api/config`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    mode: 'cors',  // 明确指定跨域模式
-                    body: JSON.stringify({ api_key: apiKey, api_secret: secretKey })
-                });
-                
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.detail || '保存配置失败');
-                }
-                
-                const data = await response.json();
-                if (data.status === 'success') {
-                    updateStatus('配置保存成功', 'success');
-                    // 重新连接WebSocket
-                    if (window.priceSocket) {
-                        window.priceSocket.close();
-                    }
-                    connectWebSocket();
-                } else {
-                    throw new Error(data.message || '配置保存失败');
-                }
-            } catch (error) {
-                console.error('保存配置错误:', error);
-                updateStatus('错误: ' + error.message, 'error');
-            }
-        }
-
-        // 处理交易类型变化
-        function handleTradeTypeChange() {
-            const tradeType = document.querySelector('input[name="tradeType"]:checked').value;
-            const leverageInput = document.getElementById('leverageInput');
-            
-            if (tradeType === 'futures') {
-                leverageInput.classList.add('show');
-            } else {
-                leverageInput.classList.remove('show');
-            }
-        }
-
-        function handleInvestmentTypeChange() {
-            const investmentType = document.getElementById('investmentType').value;
-            const totalInvestmentInput = document.getElementById('totalInvestmentInput');
-            const perGridAmountInput = document.getElementById('perGridAmountInput');
-            
-            if (investmentType === 'total') {
-                totalInvestmentInput.style.display = 'block';
-                perGridAmountInput.style.display = 'none';
-            } else {
-                totalInvestmentInput.style.display = 'none';
-                perGridAmountInput.style.display = 'block';
-            }
-        }
-
-        function handleSymbolChange() {
-            const symbol = document.getElementById('symbol').value;
-            const perGridUnit = document.getElementById('perGridUnit');
-            const perGridAmount = document.getElementById('perGridAmount');
-            
-            if (symbol === 'BTCUSDT') {
-                perGridUnit.textContent = 'BTC';
-                perGridAmount.min = '0.001';
-                perGridAmount.step = '0.001';
-                perGridAmount.placeholder = '例如: 0.001';
-            } else {
-                perGridUnit.textContent = 'ETH';
-                perGridAmount.min = '0.01';
-                perGridAmount.step = '0.01';
-                perGridAmount.placeholder = '例如: 0.01';
-            }
-        }
-        
-        // 预览网格
-        async function previewGrid() {
-            const symbol = document.getElementById('symbol').value;
-            const gridCount = parseInt(document.getElementById('gridCount').value);
-            const gridHeight = parseFloat(document.getElementById('gridHeight').value);
-            const tradeType = document.querySelector('input[name="tradeType"]:checked').value;
-            const leverage = tradeType === 'futures' ? parseInt(document.getElementById('leverage').value) : undefined;
-            
-            const investmentType = document.getElementById('investmentType').value;
-            let investment = null;
-            let perGridAmount = null;
-            
-            if (investmentType === 'total') {
-                investment = parseFloat(document.getElementById('investment').value);
-                if (!investment || investment <= 0) {
-                    updateStatus('请输入有效的投资金额', 'error');
-                    return;
-                }
-            } else {
-                perGridAmount = parseFloat(document.getElementById('perGridAmount').value);
-                if (!perGridAmount || perGridAmount <= 0) {
-                    updateStatus('请输入有效的每格数量', 'error');
-                    return;
-                }
-            }
-
-            try {
-                const response = await fetch(config.apiUrl + config.previewUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        symbol,
-                        grid_count: gridCount,
-                        grid_height: gridHeight,
-                        investment,
-                        per_grid_amount: perGridAmount,
-                        trade_type: tradeType,
-                        leverage
-                    })
-                });
-
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.detail || '网格预览失败');
-                }
-
-                const data = await response.json();
-                displayGridPreview(data);
-                updateStatus('网格预览已更新', 'success');
-            } catch (error) {
-                updateStatus('错误: ' + error.message, 'error');
-            }
-        }
-
-        function displayGridPreview(data) {
-            const gridPreview = document.getElementById('gridLines');
-            let html = '';
-
-            if (!data || !data.data || !data.data.grid_prices || !data.data.grid_types) {
-                updateStatus('无效的网格数据', 'error');
-                return;
-            }
-
-            const { grid_prices, grid_types, quantity_per_grid, investment_per_grid, actual_investment_per_grid } = data.data;
-
-            grid_prices.forEach((price, index) => {
-                const type = grid_types[index];
-                const className = type === 'buy' ? 'buy' : 
-                                type === 'sell' ? 'sell' : 'current';
-                                
-                html += `
-                    <div class="grid-line ${className}">
-                        <div class="grid-info">
-                            <span class="grid-price">价格: ${price.toFixed(2)} USDT</span>
-                            <span class="grid-amount">数量: ${quantity_per_grid.toFixed(6)}</span>
-                            <span class="grid-investment">投资: ${actual_investment_per_grid.toFixed(2)} USDT</span>
-                        </div>
-                    </div>
-                `;
-            });
-
-            gridPreview.innerHTML = html;
-        }
-
-        async function startTrading() {
-            const symbol = document.getElementById('symbol').value;
-            const gridCount = parseInt(document.getElementById('gridCount').value);
-            const gridHeight = parseFloat(document.getElementById('gridHeight').value);
-            const tradeType = document.querySelector('input[name="tradeType"]:checked').value;
-            const leverage = tradeType === 'futures' ? parseInt(document.getElementById('leverage').value) : undefined;
-            
-            const investmentType = document.getElementById('investmentType').value;
-            let investment = null;
-            let perGridAmount = null;
-            
-            if (investmentType === 'total') {
-                investment = parseFloat(document.getElementById('investment').value);
-                if (!investment || investment <= 0) {
-                    updateStatus('请输入有效的投资金额', 'error');
-                    return;
-                }
-            } else {
-                perGridAmount = parseFloat(document.getElementById('perGridAmount').value);
-                if (!perGridAmount || perGridAmount <= 0) {
-                    updateStatus('请输入有效的每格数量', 'error');
-                    return;
-                }
-            }
-
-            try {
-                const response = await fetch(config.apiUrl + config.startTradingUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        symbol,
-                        gridCount,
-                        gridHeight,
-                        investment,
-                        perGridAmount,
-                        tradeType,
-                        leverage
-                    })
-                });
-
-                const data = await response.json();
-                if (data.status === 'success') {
-                    updateStatus('交易已启动', 'success');
-                    document.getElementById('startButton').disabled = true;
-                    document.getElementById('stopButton').disabled = false;
-                } else {
-                    throw new Error(data.message || '启动交易失败');
-                }
-            } catch (error) {
-                updateStatus('错误: ' + error.message, 'error');
-            }
-        }
-
-        async function stopTrading() {
-            try {
-                const response = await fetch(config.apiUrl + config.stopTradingUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                });
-
-                const data = await response.json();
-                if (data.status === 'success') {
-                    updateStatus('交易已停止', 'success');
-                    document.getElementById('startButton').disabled = false;
-                    document.getElementById('stopButton').disabled = true;
-                } else {
-                    throw new Error(data.message || '停止交易失败');
-                }
-            } catch (error) {
-                updateStatus('错误: ' + error.message, 'error');
-            }
-        }
-        
-        // 页面加载完成后初始化
-        window.onload = function() {
-            connectWebSocket();
-            initChart();
-            handleSymbolChange();  // 初始化每格数量单位
-            // 每分钟更新一次K线图
-            setInterval(updateChart, 60000);
-        };
-    </script>
 </body>
 </html> 
