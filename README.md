@@ -18,7 +18,7 @@
 
 ## 下载安装
 
-访问 [下载页面](https://your-username.github.io/grid-trading-system/) 获取最新版本。
+访问 [下载页面](https://tiance666.github.io/grid-trading/) 获取最新版本。
 
 ## 安装说明
 
